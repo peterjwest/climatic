@@ -5,6 +5,9 @@
   "main": "index.js",
   "author": "Pete West <peterjwest3@gmail.com> (https://github.com/peterjwest/)",
   "license": "MIT",
+  "dependencies": {
+    "lodash": "*3.10.1"
+  },
   "devDependencies": {
     "gulp": "*3.9.0",
     "gulp-coveralls": "*0.1.4",

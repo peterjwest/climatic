@@ -17,7 +17,7 @@ if (process.env.CIRCLE_ARTIFACTS) {
   };
 }
 
-var libFiles = ['index.js'];
+var libFiles = ['index.js', 'lib/**/*.js'];
 var testFiles = ['test/**/*.js'];
 var otherFiles = ['gulpfile.js'];
 
