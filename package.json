@@ -1,0 +1,31 @@
+{
+  "name": "climatic",
+  "version": "0.0.0",
+  "description": "Command line API tool built for subcommands",
+  "main": "index.js",
+  "author": "Pete West <peterjwest3@gmail.com> (https://github.com/peterjwest/)",
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "*3.9.0",
+    "gulp-coveralls": "*0.1.4",
+    "gulp-istanbul": "*0.10.0",
+    "gulp-jscs": "*2.0.0",
+    "gulp-mocha": "*2.1.3",
+    "gulp-sequence": "*0.4.0",
+    "istanbul-text-full-reporter": "*0.1.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/peterjwest/climatic.git"
+  },
+  "bugs": {
+    "url": "https://github.com/peterjwest/climatic/issues"
+  },
+  "homepage": "https://github.com/peterjwest/climatic",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "gulp test"
+  }
+}
