@@ -7,7 +7,7 @@
 [npm-badge]: https://badge.fury.io/js/climatic.svg
 [npm-url]: https://www.npmjs.com/package/climatic
 
-[circle-badge]: https://circleci.com/gh/peterjwest/climatic.svg?&style=shield&circle-token=975d524a7ce4f4e387faa7756e3366498139ad95
+[circle-badge]: https://circleci.com/gh/peterjwest/climatic.svg?&style=shield&circle-token=2289d7cf77eacc941c35a5eec73328ba2d1e8ea0
 [circle-url]: https://circleci.com/gh/peterjwest/climatic
 
 [coverage-badge]: https://coveralls.io/repos/peterjwest/climatic/badge.svg?branch=master&service=github
