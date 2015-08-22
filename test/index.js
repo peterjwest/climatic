@@ -734,6 +734,7 @@ describe('climatic', function() {
         cmd.run(['node', 'fruit', 'banana', '--reduced']);
         assert(cmd._action.calledOnce);
         assert(optionAction.notCalled);
+        assert.equal(cmd._action.getCall(0).thisValue, cmd);
         assert.deepEqual(cmd._action.getCall(0).args, [
           { name: 'banana' },
           {
@@ -753,6 +754,7 @@ describe('climatic', function() {
         cmd.run(['node', 'fruit', 'banana', '--ripeness=3']);
         assert(cmd._action.notCalled);
         assert(optionAction.calledOnce);
+        assert.equal(optionAction.getCall(0).thisValue, cmd);
         assert.deepEqual(optionAction.getCall(0).args, [
           {
             reduced: false,
@@ -807,6 +809,7 @@ describe('climatic', function() {
         cmd.run(['node', 'fruit', '--reduced']);
         assert(cmd._action.calledOnce);
         assert(sub._action.notCalled);
+        assert.equal(cmd._action.getCall(0).thisValue, cmd);
         assert.deepEqual(cmd._action.getCall(0).args, [
           {},
           {
@@ -826,6 +829,7 @@ describe('climatic', function() {
         cmd.run(['node', 'fruit', 'coconut', 'kappadam']);
         assert(cmd._action.notCalled);
         assert(sub._action.calledOnce);
+        assert.equal(sub._action.getCall(0).thisValue, sub);
         assert.deepEqual(sub._action.getCall(0).args, [
           { type: 'kappadam' },
           {

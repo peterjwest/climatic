@@ -1,3 +1,7 @@
+# Unreleased
+
+- Added tests to check context of called actions
+
 # 0.1.0
 
 - Fixed badge for CircleCI status
