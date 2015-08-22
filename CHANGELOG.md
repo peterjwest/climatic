@@ -5,6 +5,7 @@
 - Updated JSCS
 - Tested argv parser
 - Added bash formatting utility and tests
+- Major update to library and tests
 
 # 0.0.1
 

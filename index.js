@@ -1,147 +1,256 @@
 var _ = require('lodash');
+var argvParser = require('./lib/argv-parser');
+var errorTemplates = require('./lib/error-templates');
+var messageFormatter = require('./lib/message-formatter');
 
-var Command = module.exports = function(name, sub) {
+var Climatic = module.exports = function(name) {
   this._name = name;
-  this._allowedOptions = {};
-  this._expectedArguments = [];
+  this._options = {
+    help: {
+      short: 'h',
+      flag: true,
+      help: 'Display this help message',
+      action: function() { this._output(this.helpMessage()); }
+    },
+    version: {
+      short: 'v',
+      flag: true,
+      help: 'Display the command version',
+      action: function() { this._output(this._messageFormatter.version(this)); }
+    }
+  };
+  this._arguments   = [];
   this._subcommands = {};
-  this._sub = sub;
+  this._root        = this;
 };
 
-Command.prototype.help = function(message) {
-  this._helpMessage = message;
-  return this;
+Climatic.prototype._argvParser       = argvParser;
+Climatic.prototype._output           = console.log;
+Climatic.prototype._errorTemplates   = errorTemplates;
+Climatic.prototype._messageFormatter = messageFormatter;
+
+Climatic.prototype.version = function(version) {
+  if (arguments.length > 0) {
+    this._version = version;
+    return this;
+  }
+  return this._version
 };
 
-Command.prototype.options = function(options) {
-  this._allowedOptions = _.assign(this._allowedOptions, options);
-  return this;
+Climatic.prototype.help = function(help) {
+  if (arguments.length > 0) {
+    this._help = help;
+    return this;
+  }
+  return this._help;
 };
 
-Command.prototype.arguments = function(args) {
-  this._expectedArguments = this._expectedArguments.concat(
-    Array.isArray(args) ? args : [].slice.call(arguments)
-  );
-  return this;
+Climatic.prototype.options = function(options) {
+  if (arguments.length > 0) {
+    this._options = _.assign(this._options, options);
+    return this;
+  }
+
+  var parentOptions = this._parent ? _.clone(this._parent.options()) : {};
+  return _.pick(_.assign(parentOptions, this._options), _.identity);
 };
 
-Command.prototype.command = function(name) {
-  var command = new Command(name, true);
-  command._parent = this;
-  command._root = this._root || this;
+Climatic.prototype.arguments = function(args) {
+  if (arguments.length > 0) {
+    this._arguments = arguments.length > 1 ? [].slice.call(arguments) : args;
+    return this;
+  }
+
+  return this._arguments;
+};
+
+Climatic.prototype.action = function(action) {
+  if (arguments.length > 0) {
+    this._action = action;
+  }
+
+  return this._action;
+};
+
+Climatic.prototype.subcommand = function(name) {
+  var command = new Climatic(name, true);
+
+  // Override defaults set for root commands
+  command._options = {};
+  command._parent  = this;
+  command._root    = this._root;
+
+  // Pass down overridden internals
+  command._argvParser       = this._argvParser;
+  command._output           = this._output;
+  command._errorTemplates   = this._errorTemplates;
+  command._messageFormatter = this._messageFormatter;
+
+  // Add to subcommands
   return this._subcommands[name] = command;
 };
 
-Command.prototype.allowedOptions = function() {
-  var parentOptions = this._parent ? _.clone(this._parent.allowedOptions()) : {};
-  return _.assign(parentOptions, this._allowedOptions);
+Climatic.prototype.subcommands = function() {
+  return this._subcommands;
 };
 
-Command.prototype.parseArguments = function(args) {
-  if (args.length > this._expectedArguments.length) {
-    throw 'Too many arguments, expected ' + this._expectedArguments.length + ' got ' + args.length;
+Climatic.prototype.hasSubcommands = function() {
+  return _.keys(this._subcommands).length;
+};
+
+Climatic.prototype.path = function() {
+  var parentPath = this._parent && this._parent.path();
+  var path = parentPath ? parentPath.slice(0) : [];
+  if (this._root !== this) path.push(this._name);
+  return path;
+};
+
+Climatic.prototype.commandName = function() {
+  return this._root._name;
+};
+
+Climatic.prototype.name = function() {
+  return this.path().join(':');
+};
+
+Climatic.prototype.helpMessage = function() {
+  return this._messageFormatter.help(this);
+};
+
+Climatic.prototype.errorMessage = function(errors) {
+  return this._messageFormatter.error(this, errors);
+};
+
+Climatic.prototype._renderErrors = function(errors) {
+  return errors.map(_.bind(function(error) {
+    return {
+      type: error[0],
+      error: this._errorTemplates[error[0]][error[1]].apply(this, error.slice(2))
+    };
+  }, this));
+};
+
+Climatic.prototype._parseArguments = function(payload) {
+  if (payload.args.length > this._arguments.length) {
+    payload.errors.push(['argument', 'tooMany', this._arguments.length, payload.args.length]);
   }
 
-  return _.zipObject(this._expectedArguments.map(function(arg, index) {
-    if (args[index] === undefined && !arg.optional) {
-      throw 'Argument ' + (index + 1) + ' "' + arg.name + '" is required';
+  return _.zipObject(this._arguments.map(function(arg, index) {
+    if (payload.args[index] === undefined && !arg.optional) {
+      payload.errors.push(['argument', 'missingRequired', arg.name]);
     }
-    return [arg.name, args[index] || null];
+    return [arg.name, payload.args[index] || null];
   }));
 };
 
-Command.prototype.parseOptions = function(opts) {
-  var allowedOptions = this.allowedOptions();
+Climatic.prototype._parseOptions = function(payload) {
+  var allowedOptions = this.options();
 
+  // Create hash of default options
   var options = _.mapValues(allowedOptions, function(option) {
     return option.flag ? false : null;
   });
 
-  _.assign(options, _.mapKeys(opts, function(value, key) {
+  _.assign(options, _.mapKeys(payload.options, function(value, key) {
     var found = _.findKey(allowedOptions, function(option, name) {
       return name === key || option.short === key;
     });
 
-    if (!found) throw 'Option "' + key + '" not allowed';
-    return found;
+    if (!found) {
+      payload.errors.push(['option', 'notAllowed', key]);
+    }
+    return found || key;
   }));
 
-  return _.mapValues(options, function(value, name) {
-    if (allowedOptions[name].flag) {
-      if (value !== true && value !== false) {
-        throw 'Option "' + name + '" is a flag and should not have a value';
+  _.forEach(options, function(value, name) {
+    if (allowedOptions[name]) {
+      if (allowedOptions[name].flag) {
+        if (value !== true && value !== false) {
+          payload.errors.push(['option', 'shouldNotHaveValue', name]);
+        }
+      }
+      else {
+        if (value === true || value === false) {
+          payload.errors.push(['option', 'shouldHaveValue', name]);
+        }
       }
     }
-    else {
-      if (value === true || value === false) {
-        throw 'Option "' + name + '" should have a value';
-      }
-    }
-    return value;
-  });
-};
-
-Command.prototype.hasSubcommands = function() {
-  return _.keys(this._subcommands).length;
-};
-
-Command.prototype.commandPath = function(additional) {
-  var path = [];
-  var parentPath = this._parent && this._parent.commandPath();
-  if (parentPath) path.push(parentPath);
-  if (this._sub) path.push(this._name);
-  if (additional) path.push(additional);
-  return path.join(':');
-};
-
-Command.prototype.generateHelp = function() {
-  var args = this._expectedArguments.map(function(argument) {
-    var arg = '<' + argument.name + '>';
-    return argument.optional ? '[' + arg + ']' : arg;
   });
 
-  var opts = _.map(this.allowedOptions(), function(option, name) {
-    var value = option.flag ? '' : '=<' + name + '>';
-    var opt = '--' + name + (option.short ? '|-' + option.short : '') + value;
-    return '[' + opt + ']';
-  });
+  return options;
+};
 
-  return [this._root._name, this.commandPath(), args.join(' '), opts.join(' ')].join(' ');
-}
-
-Command.prototype.run = function(payload) {
-  if (this.hasSubcommands() && payload.commands === undefined) {
+Climatic.prototype.parse = function(payload) {
+  // For the root command, extract commands
+  if (this._root === this) {
+    payload = this._argvParser(payload);
     payload = {
-      commands: payload.args[0] ? payload.args[0].split(':') : [],
-      args: payload.args.slice(1),
-      options: payload.options
+      raw: payload,
+      commands: this.hasSubcommands() && payload.args[0] ? payload.args[0].split(':') : [],
+      args: this.hasSubcommands() ? payload.args.slice(1) : payload.args,
+      options: payload.options,
+      errors: []
     };
   }
 
   var command = payload.commands[0];
 
-  if (this.hasSubcommands() && command) {
-    if (!this._subcommands[command]) {
-      return 'Command "' + this.commandPath(payload.commands[0]) + '" not found';
-    }
-
+  // If there is a matching subcommand, delegate parsing to it
+  if (this._subcommands[command]) {
     payload = _.clone(payload);
     payload.commands = payload.commands.slice(1);
-
-    return this._subcommands[command].run(payload);
+    return this._subcommands[command].parse(payload);
   }
-  else {
-    if (payload.commands.length) {
-      return 'Command "' + this.commandPath(payload.commands[0]) + '" not found';
-    }
 
-    try {
-      return {
-        args: this.parseArguments(payload.args),
-        options: this.parseOptions(payload.options)
-      };
-    } catch (e) {
-      return e;
-    }
+  // If there are no more subcommands, this is the right command
+  var valid = payload.commands.length === 0
+  payload.args = valid ? this._parseArguments(payload) : {};
+
+  if (!valid) {
+    payload.errors.push(['command', 'notFound', payload.raw.args[0]]);
   }
+
+  // Finalise payload by parsing options and generating error objects
+  payload.command = this;
+  payload.options = this._parseOptions(payload);
+  payload.errors  = this._renderErrors(payload.errors);
+  delete payload.commands;
+  return payload;
+};
+
+Climatic.prototype.run = function(payload) {
+  payload = this.parse(payload);
+  var command = payload.command;
+
+  // Check for command errors
+  var commandErrors = _.filter(payload.errors, function(error) { return error.type === 'command'; });
+  if (commandErrors.length) {
+    return this._output(command.errorMessage(commandErrors));
+  }
+
+  // Try to find an option with an action
+  var options = command.options();
+  var option = options[_.findKey(payload.options, _.bind(function(option, key) {
+    return option && options[key] && options[key].action;
+  }, this))] || {};
+
+  // Run the option action if it exists (e.g. --help)
+  if (option.action) {
+    return option.action.call(command, payload.options, payload.raw);
+  }
+
+  // Otherwise check for option or argument errors
+  var otherErrors = _.filter(payload.errors, function(error) { return error.type !== 'comand'; });
+  if (otherErrors.length) {
+    return this._output(command.errorMessage(otherErrors));
+  }
+
+  // Then run the command action
+  if (command._action) {
+    return command._action.call(command, payload.args, payload.options, payload.raw);
+  }
+
+  console.log(payload.errors);
+
+  this._output(command.helpMessage());
 };
