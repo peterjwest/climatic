@@ -250,7 +250,5 @@ Climatic.prototype.run = function(payload) {
     return command._action.call(command, payload.args, payload.options, payload.raw);
   }
 
-  console.log(payload.errors);
-
   this._output(command.helpMessage());
 };
