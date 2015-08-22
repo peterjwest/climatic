@@ -1,4 +1,4 @@
-# Unreleased
+# 0.1.0
 
 - Fixed badge for CircleCI status
 - Added first version of library
