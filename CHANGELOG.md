@@ -2,6 +2,8 @@
 
 - Fixed badge for CircleCI status
 - Added first version of library
+- Updated JSCS
+- Tested argv parser
 
 # 0.0.1
 
