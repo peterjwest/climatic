@@ -1,8 +1,10 @@
-var messageFormatter = require('../../lib/message-formatter');
 var _ = require('lodash');
 var assert = require('assert');
+var sinon = require('sinon');
+var messageFormatter = require('../../lib/message-formatter');
 var format = require('../../lib/bash-format');
 var LineMapper = require('../../lib/line-mapper');
+var sandbox = require('../sinon-sandbox');
 
 describe('message-formatter', function() {
   describe('version', function() {
@@ -24,10 +26,14 @@ describe('message-formatter', function() {
   });
 
   describe('error', function() {
-    it('formats errors below the help message', function() {
-      var command = {
-        helpMessage: _.constant('Yadda yadda yadda')
-      };
+    var sinon = sandbox();
+
+    beforeEach(function() {
+      sinon.stub(messageFormatter, 'help').returns('<help>');
+    });
+
+    it('formats errors after printing the help message', function() {
+      var command = {};
       var errors = [
         { error: 'Shut up, fool!' },
         { error: 'Quit yo jibber jabber' }
@@ -42,6 +48,8 @@ describe('message-formatter', function() {
           '  Quit yo jibber jabber'
         ).join()
       );
+      assert(messageFormatter.help.calledOnce);
+      assert.deepEqual(messageFormatter.help.getCall(0).args, [command]);
     });
   });
 
