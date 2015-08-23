@@ -6,6 +6,7 @@
 - Moved some internals to be on the class rather than instance
 - Added action error handling
 - Added test that option action runs on subcommand
+- Fixed single argument bug in arguments method
 
 # 0.1.0
 

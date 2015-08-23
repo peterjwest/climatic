@@ -68,7 +68,7 @@ Climatic.prototype.options = function(options) {
 
 Climatic.prototype.arguments = function(args) {
   if (arguments.length > 0) {
-    this._arguments = arguments.length > 1 ? [].slice.call(arguments) : args;
+    this._arguments = Array.isArray(args) ? args : [].slice.call(arguments);
     return this;
   }
 

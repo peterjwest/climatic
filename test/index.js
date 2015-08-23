@@ -102,6 +102,12 @@ describe('climatic', function() {
       assert.deepEqual(cmd.arguments(), [{ name: 'foo' }, { name: 'bar' }]);
     });
 
+    it('stores and returns arguments from a single argument', function() {
+      var cmd = new Climatic('fruit');
+      cmd.arguments({ name: 'foo' });
+      assert.deepEqual(cmd.arguments(), [{ name: 'foo' }]);
+    });
+
     it('returns the command when used as a setter', function() {
       var cmd = new Climatic('fruit');
       assert.equal(cmd.arguments({}), cmd);
