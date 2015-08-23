@@ -1,6 +1,6 @@
 {
   "name": "climatic",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Command line API tool built for subcommands",
   "main": "index.js",
   "author": "Pete West <peterjwest3@gmail.com> (https://github.com/peterjwest/)",

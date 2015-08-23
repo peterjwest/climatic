@@ -1,11 +1,8 @@
-# Unreleased
+# 0.2.0
 
-- Added tests to check context of called actions
-- Changed message formatter to use its own help method
-- Added inline error for erroring actions
+- Added action error response/handling
+- Added tests to check actions run in context of command
 - Moved some internals to be on the class rather than instance
-- Added action error handling
-- Added test that option action runs on subcommand
 - Fixed single argument bug in arguments method
 
 # 0.1.0
