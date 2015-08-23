@@ -62,8 +62,7 @@ describe('message-formatter', function() {
           '  none',
           '',
           'Options:',
-          '  none',
-          ''
+          '  none'
         ).join()
       );
     });
@@ -92,8 +91,7 @@ describe('message-formatter', function() {
           '',
           'Options:',
           '  --washed (-w)',
-          '  --ripeness=<value>',
-          ''
+          '  --ripeness=<value>'
         ).join()
       );
     });
@@ -128,8 +126,7 @@ describe('message-formatter', function() {
           '',
           'Options:',
           '  --washed (-w)       Whether the banana should be washed',
-          '  --ripeness=<value>  Desired ripeness of the banana',
-          ''
+          '  --ripeness=<value>  Desired ripeness of the banana'
         ).join()
       );
     });
@@ -175,8 +172,7 @@ describe('message-formatter', function() {
           '  fruit banana:red',
           '',
           'Options:',
-          '  --washed (-w)          Whether the banana should be washed',
-          ''
+          '  --washed (-w)          Whether the banana should be washed'
         ).join()
       );
     });
