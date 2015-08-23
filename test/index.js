@@ -807,7 +807,7 @@ describe('climatic', function() {
       ]);
       cmd.action(sinon.stub());
 
-      var optionAction = sinon.stub();
+      var optionAction = _.noop;
       cmd.options({
         ripeness: { short: 'r', action: optionAction },
         reduced: { flag: true },
@@ -816,46 +816,47 @@ describe('climatic', function() {
       });
 
       beforeEach(function() {
-        cmd._action.reset();
-        optionAction.reset();
+        cmd._runAction = sinon.stub();
       });
 
       it('runs the action passing the arguments, options and raw payload', function() {
         cmd.run(['node', 'fruit', 'banana', '--reduced']);
-        assert(cmd._action.calledOnce);
-        assert(optionAction.notCalled);
-        assert.equal(cmd._action.getCall(0).thisValue, cmd);
-        assert.deepEqual(cmd._action.getCall(0).args.slice(0, -1), [
-          { name: 'banana' },
-          {
-            reduced: true,
-            ripeness: null
-          },
-          {
-            args: ['banana'],
-            options: {
-              reduced: true
+        assert(cmd._runAction.calledOnce);;
+        assert.deepEqual(cmd._runAction.getCall(0).args, [
+          cmd._action,
+          [
+            { name: 'banana' },
+            {
+              reduced: true,
+              ripeness: null
+            },
+            {
+              args: ['banana'],
+              options: {
+                reduced: true
+              }
             }
-          }
+          ]
         ]);
       });
 
       it('runs an option action instead of the command action if there is one', function() {
         cmd.run(['node', 'fruit', 'banana', '--ripeness=3']);
-        assert(cmd._action.notCalled);
-        assert(optionAction.calledOnce);
-        assert.equal(optionAction.getCall(0).thisValue, cmd);
-        assert.deepEqual(optionAction.getCall(0).args.slice(0, -1), [
-          {
-            reduced: false,
-            ripeness: '3'
-          },
-          {
-            args: ['banana'],
-            options: {
+        assert(cmd._runAction.calledOnce);
+        assert.deepEqual(cmd._runAction.getCall(0).args, [
+          optionAction,
+          [
+            {
+              reduced: false,
               ripeness: '3'
+            },
+            {
+              args: ['banana'],
+              options: {
+                ripeness: '3'
+              }
             }
-          }
+          ]
         ]);
       });
     });
@@ -872,7 +873,7 @@ describe('climatic', function() {
       var cmd = new Climatic('fruit');
       cmd.action(sinon.stub());
 
-      var optionAction = sinon.stub();
+      var optionAction = _.noop;
       cmd.options({
         ripeness: { short: 'r' },
         reduced: { flag: true, action: optionAction },
@@ -891,81 +892,86 @@ describe('climatic', function() {
       sub.action(sinon.stub());
 
       beforeEach(function() {
-        cmd._action.reset();
-        sub._action.reset();
-        optionAction.reset();
+        cmd._runAction = sinon.stub();
+        sub._runAction = sinon.stub();
       });
 
       it('runs base command action', function() {
         cmd.run(['node', 'fruit', '--ripeness=3']);
-        assert(cmd._action.calledOnce);
-        assert(sub._action.notCalled);
-        assert.equal(cmd._action.getCall(0).thisValue, cmd);
-        assert.deepEqual(cmd._action.getCall(0).args.slice(0, -1), [
-          {},
-          {
-            reduced: false,
-            ripeness: '3'
-          },
-          {
-            args: [],
-            options: {
+        assert(cmd._runAction.calledOnce);
+        assert(sub._runAction.notCalled);
+        assert.deepEqual(cmd._runAction.getCall(0).args [
+          cmd._action,
+          [
+            {},
+            {
+              reduced: false,
               ripeness: '3'
+            },
+            {
+              args: [],
+              options: {
+                ripeness: '3'
+              }
             }
-          }
+          ]
         ]);
       });
 
       it('runs a subcommand action', function() {
         cmd.run(['node', 'fruit', 'coconut', 'kappadam']);
-        assert(cmd._action.notCalled);
-        assert(sub._action.calledOnce);
-        assert.equal(sub._action.getCall(0).thisValue, sub);
-        assert.deepEqual(sub._action.getCall(0).args.slice(0, -1), [
-          { type: 'kappadam' },
-          {
-            reduced: false,
-            hardness: null
-          },
-          {
-            args: ['coconut', 'kappadam'],
-            options: {}
-          }
+        assert(cmd._runAction.notCalled);
+        assert(sub._runAction.calledOnce);
+        assert.deepEqual(sub._runAction.getCall(0).args, [
+          sub._action,
+          [
+            { type: 'kappadam' },
+            {
+              reduced: false,
+              hardness: null
+            },
+            {
+              args: ['coconut', 'kappadam'],
+              options: {}
+            }
+          ]
         ]);
       });
 
       it('runs an option action on a subcommand', function() {
         cmd.run(['node', 'fruit', 'coconut', '--reduced']);
-        assert(cmd._action.notCalled);
-        assert(sub._action.notCalled);
-        assert(optionAction.calledOnce);
-        assert.equal(optionAction.getCall(0).thisValue, sub);
-        assert.deepEqual(optionAction.getCall(0).args.slice(0, -1), [
-          {
-            reduced: true,
-            hardness: null
-          },
-          {
-            args: ['coconut'],
-            options: {
-              reduced: true
+
+        assert(cmd._runAction.notCalled);
+        assert(sub._runAction.calledOnce);
+        assert.deepEqual(sub._runAction.getCall(0).args, [
+          optionAction,
+          [
+            {
+              reduced: true,
+              hardness: null
+            },
+            {
+              args: ['coconut'],
+              options: {
+                reduced: true
+              }
             }
-          }
+          ]
         ]);
       });
 
       it('outputs an error if there is no valid subcommand', function() {
         cmd.run(['node', 'fruit', 'banana']);
-        assert(cmd._action.notCalled);
-        assert(sub._action.notCalled);
+        assert(cmd._runAction.notCalled);
+        assert(sub._runAction.notCalled);
         assert(Climatic._output.calledOnce);
         assert.deepEqual(Climatic._output.getCall(0).args, ['Command "banana" not found']);
       });
 
       it('outputs an error if there is no valid nested subcommand', function() {
         cmd.run(['node', 'fruit', 'coconut:kappadam']);
-        assert(cmd._action.notCalled);
-        assert(sub._action.notCalled);
+        assert(cmd._runAction.notCalled);
+        assert(sub._runAction.notCalled);
         assert(Climatic._output.calledOnce);
         assert.deepEqual(Climatic._output.getCall(0).args, ['Command "coconut:kappadam" not found']);
       });
