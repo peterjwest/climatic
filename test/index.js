@@ -678,6 +678,79 @@ describe('climatic', function() {
     });
   });
 
+  describe('_runAction', function() {
+    var sinon = sandbox();
+
+    beforeEach(function() {
+      sinon.stub(process, 'exit');
+      sinon.stub(Climatic, '_output');
+      sinon.stub(Climatic._messageFormatter, 'inlineError').returns('<error>');
+    });
+
+    it('exits the process in error if the action returns an error', function() {
+      var cmd = new Climatic('fruit');
+      cmd.action(function() {
+        return 'Some error';
+      });
+      assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
+      assert(Climatic._output.calledOnce);
+      assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
+      assert(process.exit.calledOnce);
+      assert.deepEqual(process.exit.getCall(0).args, [1]);
+    });
+
+    it('exits the process in error if the action calls the callback with an error', function() {
+      var cmd = new Climatic('fruit');
+      cmd.action(function(args, options, raw, next) {
+        next('Some error');
+      });
+      assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
+      assert(Climatic._output.calledOnce);
+      assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
+      assert(process.exit.calledOnce);
+      assert.deepEqual(process.exit.getCall(0).args, [1]);
+    });
+
+    it('exits the process in error if the action returns a promise which yields an error', function() {
+      var cmd = new Climatic('fruit');
+      cmd.action(function() {
+        return bluebird.resolve('Some error');
+      });
+      cmd._runAction(cmd._action, [1, 2, 3]).then(function() {
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
+        assert(process.exit.calledOnce);
+        assert.deepEqual(process.exit.getCall(0).args, [1]);
+      });
+    });
+
+    it('does nothing if the action returns no error', function() {
+      var cmd = new Climatic('fruit');
+      cmd.action(function() { return null; });
+      assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
+      assert(process.exit.notCalled);
+    });
+
+    it('does nothing if the action calls the callback with no error', function() {
+      var cmd = new Climatic('fruit');
+      cmd.action(function(args, options, raw, next) {
+        next();
+      });
+      assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
+      assert(process.exit.notCalled);
+    });
+
+    it('does nothing if the action returns a promise which yields no error', function() {
+      var cmd = new Climatic('fruit');
+      cmd.action(function() {
+        return bluebird.resolve();
+      });
+      cmd._runAction(cmd._action, [1, 2, 3]).then(function() {
+        assert(process.exit.notCalled);
+      });
+    });
+  });
+
   describe('run', function() {
     var sinon = sandbox();
 
@@ -746,7 +819,7 @@ describe('climatic', function() {
         assert(cmd._action.calledOnce);
         assert(optionAction.notCalled);
         assert.equal(cmd._action.getCall(0).thisValue, cmd);
-        assert.deepEqual(cmd._action.getCall(0).args, [
+        assert.deepEqual(cmd._action.getCall(0).args.slice(0, -1), [
           { name: 'banana' },
           {
             reduced: true,
@@ -766,7 +839,7 @@ describe('climatic', function() {
         assert(cmd._action.notCalled);
         assert(optionAction.calledOnce);
         assert.equal(optionAction.getCall(0).thisValue, cmd);
-        assert.deepEqual(optionAction.getCall(0).args, [
+        assert.deepEqual(optionAction.getCall(0).args.slice(0, -1), [
           {
             reduced: false,
             ripeness: 3
@@ -822,7 +895,7 @@ describe('climatic', function() {
         assert(cmd._action.calledOnce);
         assert(sub._action.notCalled);
         assert.equal(cmd._action.getCall(0).thisValue, cmd);
-        assert.deepEqual(cmd._action.getCall(0).args, [
+        assert.deepEqual(cmd._action.getCall(0).args.slice(0, -1), [
           {},
           {
             reduced: true,
@@ -842,7 +915,7 @@ describe('climatic', function() {
         assert(cmd._action.notCalled);
         assert(sub._action.calledOnce);
         assert.equal(sub._action.getCall(0).thisValue, sub);
-        assert.deepEqual(sub._action.getCall(0).args, [
+        assert.deepEqual(sub._action.getCall(0).args.slice(0, -1), [
           { type: 'kappadam' },
           {
             reduced: false,

@@ -3,6 +3,8 @@
 - Added tests to check context of called actions
 - Changed message formatter to use its own help method
 - Added inline error for erroring actions
+- Moved some internals to be on the class rather than instance
+- Added action error handling
 
 # 0.1.0
 

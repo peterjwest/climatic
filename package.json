@@ -9,6 +9,7 @@
     "lodash": "~3.10.1"
   },
   "devDependencies": {
+    "bluebird": "^2.9.34",
     "gulp": "~3.9.0",
     "gulp-coveralls": "~0.1.4",
     "gulp-istanbul": "~0.10.0",

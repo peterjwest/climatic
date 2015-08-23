@@ -28,6 +28,13 @@ var Climatic = module.exports = function(name) {
   this._root        = this;
 };
 
+Climatic._postAction = function(error) {
+  if (error) {
+    Climatic._output(Climatic._messageFormatter.inlineError(error));
+    process.exit(1);
+  }
+};
+
 Climatic._argvParser       = argvParser;
 Climatic._output           = console.log;
 Climatic._errorTemplates   = errorTemplates;
@@ -216,6 +223,23 @@ Climatic.prototype.parse = function(payload) {
   return payload;
 };
 
+Climatic.prototype._runAction = function(action, args) {
+  var postAction = _.bind(Climatic._postAction, this);
+
+  // Apply callback to arguments and run action
+  var result = action.apply(this, args.concat(postAction));
+
+  // Use promise if one was returned
+  if (result) {
+    if (result.then) {
+      return result.then(postAction);
+    };
+
+    // Use an error if one was returned
+    return postAction(result);
+  }
+};
+
 Climatic.prototype.run = function(payload) {
   payload = this.parse(payload);
   var command = payload.command;
@@ -234,7 +258,7 @@ Climatic.prototype.run = function(payload) {
 
   // Run the option action if it exists (e.g. --help)
   if (option.action) {
-    return option.action.call(command, payload.options, payload.raw);
+    return command._runAction(option.action, [payload.options, payload.raw]);
   }
 
   // Otherwise check for option or argument errors
@@ -245,7 +269,7 @@ Climatic.prototype.run = function(payload) {
 
   // Then run the command action
   if (command._action) {
-    return command._action.call(command, payload.args, payload.options, payload.raw);
+    return command._runAction(command._action, [payload.args, payload.options, payload.raw]);
   }
 
   Climatic._output(command.helpMessage());
