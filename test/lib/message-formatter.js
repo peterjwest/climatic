@@ -29,12 +29,18 @@ describe('message-formatter', function() {
         helpMessage: _.constant('Yadda yadda yadda')
       };
       var errors = [
-        { error: 'Too much talk' },
-        { error: 'Cut your jibber jabber' }
+        { error: 'Shut up, fool!' },
+        { error: 'Quit yo jibber jabber' }
       ];
       assert.equal(
         format.strip(messageFormatter.error(command, errors)),
-        'Yadda yadda yadda\nError:\n  Too much talk\n  Cut your jibber jabber\n'
+        LineMapper.lines(
+          '<help>',
+          '',
+          'Error:',
+          '  Shut up, fool!',
+          '  Quit yo jibber jabber'
+        ).join()
       );
     });
   });
