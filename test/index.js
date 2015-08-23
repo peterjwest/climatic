@@ -842,7 +842,7 @@ describe('climatic', function() {
         assert.deepEqual(optionAction.getCall(0).args.slice(0, -1), [
           {
             reduced: false,
-            ripeness: 3
+            ripeness: '3'
           },
           {
             args: ['banana'],
@@ -868,8 +868,8 @@ describe('climatic', function() {
 
       var optionAction = sinon.stub();
       cmd.options({
-        ripeness: { short: 'r', action: optionAction },
-        reduced: { flag: true },
+        ripeness: { short: 'r' },
+        reduced: { flag: true, action: optionAction },
         help: false,
         version: false
       });
@@ -891,20 +891,20 @@ describe('climatic', function() {
       });
 
       it('runs base command action', function() {
-        cmd.run(['node', 'fruit', '--reduced']);
+        cmd.run(['node', 'fruit', '--ripeness=3']);
         assert(cmd._action.calledOnce);
         assert(sub._action.notCalled);
         assert.equal(cmd._action.getCall(0).thisValue, cmd);
         assert.deepEqual(cmd._action.getCall(0).args.slice(0, -1), [
           {},
           {
-            reduced: true,
-            ripeness: null
+            reduced: false,
+            ripeness: '3'
           },
           {
             args: [],
             options: {
-              reduced: true
+              ripeness: '3'
             }
           }
         ]);
@@ -924,6 +924,26 @@ describe('climatic', function() {
           {
             args: ['coconut', 'kappadam'],
             options: {}
+          }
+        ]);
+      });
+
+      it('runs an option action on a subcommand', function() {
+        cmd.run(['node', 'fruit', 'coconut', '--reduced']);
+        assert(cmd._action.notCalled);
+        assert(sub._action.notCalled);
+        assert(optionAction.calledOnce);
+        assert.equal(optionAction.getCall(0).thisValue, sub);
+        assert.deepEqual(optionAction.getCall(0).args.slice(0, -1), [
+          {
+            reduced: true,
+            hardness: null
+          },
+          {
+            args: ['coconut'],
+            options: {
+              reduced: true
+            }
           }
         ]);
       });

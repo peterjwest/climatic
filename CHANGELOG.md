@@ -5,6 +5,7 @@
 - Added inline error for erroring actions
 - Moved some internals to be on the class rather than instance
 - Added action error handling
+- Added test that option action runs on subcommand
 
 # 0.1.0
 
