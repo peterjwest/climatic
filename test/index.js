@@ -1,8 +1,11 @@
-var Climatic = require('../index');
-var format = require('../lib/bash-format');
 var assert = require('assert');
 var _ = require('lodash');
 var sinon = require('sinon');
+var bluebird = require('bluebird');
+
+var Climatic = require('../index');
+var format = require('../lib/bash-format');
+var sandbox = require('./sinon-sandbox');
 
 describe('climatic', function() {
   describe('version', function() {
@@ -228,43 +231,47 @@ describe('climatic', function() {
   });
 
   describe('helpMessage', function() {
-    it('uses the message formatter', function() {
-      var cmd = new Climatic('fruit');
-      cmd._messageFormatter = {
-        help: sinon.stub().returns('<message>')
-      };
+    var sinon = sandbox();
 
-      assert.equal(cmd.helpMessage(), '<message>');
-      assert.deepEqual(cmd._messageFormatter.help.getCall(0).args, [cmd]);
+    beforeEach(function() {
+      sinon.stub(Climatic._messageFormatter, 'help').returns('<help>');
+    });
+
+    it('calls the message formatter correctly', function() {
+      var cmd = new Climatic('fruit');
+
+      assert.equal(cmd.helpMessage(), '<help>');
+      assert(Climatic._messageFormatter.help.calledOnce);
+      assert.deepEqual(Climatic._messageFormatter.help.getCall(0).args, [cmd]);
     });
   });
 
   describe('errorMessage', function() {
-    it('uses the message formatter', function() {
-      var cmd = new Climatic('fruit');
-      cmd._messageFormatter = {
-        error: sinon.stub().returns('<message>')
-      };
+    var sinon = sandbox();
 
-      assert.equal(cmd.errorMessage([1, 2, 3]), '<message>');
-      assert(cmd._messageFormatter.error.calledOnce);
-      assert.deepEqual(cmd._messageFormatter.error.getCall(0).args, [cmd, [1, 2, 3]]);
+    beforeEach(function() {
+      sinon.stub(Climatic._messageFormatter, 'error').returns('<error>');
+    });
+
+    it('calls the message formatter correctly', function() {
+      var cmd = new Climatic('fruit');
+
+      assert.equal(cmd.errorMessage([1, 2, 3]), '<error>');
+      assert(Climatic._messageFormatter.error.calledOnce);
+      assert.deepEqual(Climatic._messageFormatter.error.getCall(0).args, [cmd, [1, 2, 3]]);
     });
   });
 
   describe('_renderErrors', function() {
-    var errorTemplates = {
-      argument: {
-        tooMany: sinon.stub().returns('<tooMany>')
-      },
-      option: {
-        notAllowed: sinon.stub().returns('<notAllowed>')
-      }
-    };
+    var sinon = sandbox();
+
+    beforeEach(function() {
+      sinon.stub(Climatic._errorTemplates.argument, 'tooMany').returns('<tooMany>');
+      sinon.stub(Climatic._errorTemplates.option, 'notAllowed').returns('<notAllowed>');
+    });
 
     it('renders errors into their templates', function() {
       var cmd = new Climatic('fruit');
-      cmd._errorTemplates = errorTemplates;
 
       var errors = [
         ['argument', 'tooMany', '3', '2'],
@@ -276,11 +283,11 @@ describe('climatic', function() {
         { error: '<notAllowed>', type: 'option' }
       ]);
 
-      assert(errorTemplates.argument.tooMany.calledOnce);
-      assert(errorTemplates.argument.tooMany.getCall(0).args, ['3', '2']);
+      assert(Climatic._errorTemplates.argument.tooMany.calledOnce);
+      assert(Climatic._errorTemplates.argument.tooMany.getCall(0).args, ['3', '2']);
 
-      assert(errorTemplates.option.notAllowed.calledOnce);
-      assert(errorTemplates.option.notAllowed.getCall(0).args, ['apple']);
+      assert(Climatic._errorTemplates.option.notAllowed.calledOnce);
+      assert(Climatic._errorTemplates.option.notAllowed.getCall(0).args, ['apple']);
     });
   });
 
@@ -672,41 +679,45 @@ describe('climatic', function() {
   });
 
   describe('run', function() {
+    var sinon = sandbox();
+
+    beforeEach(function() {
+      sinon.stub(Climatic, '_output');
+    });
+
     describe('blank command', function() {
-      var cmd = new Climatic('fruit');
-      cmd._messageFormatter = {
-        help: function() { return '<help>'; },
-        error: function() { return '<error>'; },
-        version: function() { return '<version>'; }
-      }
-      cmd._output = sinon.stub();
+      var sinon = sandbox();
 
       beforeEach(function() {
-        cmd._output.reset();
+        sinon.stub(Climatic._messageFormatter, 'help', function() { return '<help>'; });
+        sinon.stub(Climatic._messageFormatter, 'error', function() { return '<error>'; });
+        sinon.stub(Climatic._messageFormatter, 'version', function() { return '<version>'; });
       });
+
+      var cmd = new Climatic('fruit');
 
       it('outputs the help message', function() {
         cmd.run(['node', 'fruit']);
-        assert(cmd._output.calledOnce);
-        assert.deepEqual(cmd._output.getCall(0).args, ['<help>']);
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['<help>']);
       });
 
       it('outputs the help message if the help flag is given', function() {
         cmd.run(['node', 'fruit', '--help']);
-        assert(cmd._output.calledOnce);
-        assert.deepEqual(cmd._output.getCall(0).args, ['<help>']);
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['<help>']);
       });
 
       it('outputs the version if the version flag is given', function() {
         cmd.run(['node', 'fruit', '--version']);
-        assert(cmd._output.calledOnce);
-        assert.deepEqual(cmd._output.getCall(0).args, ['<version>']);
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['<version>']);
       });
 
       it('outputs an error message if the input is invalid', function() {
         cmd.run(['node', 'fruit', 'cactus']);
-        assert(cmd._output.calledOnce);
-        assert.deepEqual(cmd._output.getCall(0).args, ['<error>']);
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
       });
     });
 
@@ -771,14 +782,16 @@ describe('climatic', function() {
     });
 
     describe('command with subcommands', function() {
+      var sinon = sandbox();
+
+      beforeEach(function() {
+        sinon.stub(Climatic._messageFormatter, 'error', function(command, errors) {
+          return _.pluck(errors, 'error').join(', ');
+        });
+      });
+
       var cmd = new Climatic('fruit');
       cmd.action(sinon.stub());
-      cmd._messageFormatter = {
-        error: function(command, errors) {
-          return _.pluck(errors, 'error').join(', ');
-        }
-      }
-      cmd._output = sinon.stub();
 
       var optionAction = sinon.stub();
       cmd.options({
@@ -799,7 +812,6 @@ describe('climatic', function() {
       sub.action(sinon.stub());
 
       beforeEach(function() {
-        cmd._output.reset();
         cmd._action.reset();
         sub._action.reset();
         optionAction.reset();
@@ -847,16 +859,16 @@ describe('climatic', function() {
         cmd.run(['node', 'fruit', 'banana']);
         assert(cmd._action.notCalled);
         assert(sub._action.notCalled);
-        assert(cmd._output.calledOnce);
-        assert.deepEqual(cmd._output.getCall(0).args, ['Command "banana" not found']);
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['Command "banana" not found']);
       });
 
       it('outputs an error if there is no valid nested subcommand', function() {
         cmd.run(['node', 'fruit', 'coconut:kappadam']);
         assert(cmd._action.notCalled);
         assert(sub._action.notCalled);
-        assert(cmd._output.calledOnce);
-        assert.deepEqual(cmd._output.getCall(0).args, ['Command "coconut:kappadam" not found']);
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['Command "coconut:kappadam" not found']);
       });
     });
   });

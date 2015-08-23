@@ -10,13 +10,17 @@ var Climatic = module.exports = function(name) {
       short: 'h',
       flag: true,
       help: 'Display this help message',
-      action: function() { this._output(this.helpMessage()); }
+      action: function() {
+        Climatic._output(this.helpMessage());
+      }
     },
     version: {
       short: 'v',
       flag: true,
       help: 'Display the command version',
-      action: function() { this._output(this._messageFormatter.version(this)); }
+      action: function() {
+        Climatic._output(Climatic._messageFormatter.version(this));
+      }
     }
   };
   this._arguments   = [];
@@ -24,10 +28,10 @@ var Climatic = module.exports = function(name) {
   this._root        = this;
 };
 
-Climatic.prototype._argvParser       = argvParser;
-Climatic.prototype._output           = console.log;
-Climatic.prototype._errorTemplates   = errorTemplates;
-Climatic.prototype._messageFormatter = messageFormatter;
+Climatic._argvParser       = argvParser;
+Climatic._output           = console.log;
+Climatic._errorTemplates   = errorTemplates;
+Climatic._messageFormatter = messageFormatter;
 
 Climatic.prototype.version = function(version) {
   if (arguments.length > 0) {
@@ -80,12 +84,6 @@ Climatic.prototype.subcommand = function(name) {
   command._parent  = this;
   command._root    = this._root;
 
-  // Pass down overridden internals
-  command._argvParser       = this._argvParser;
-  command._output           = this._output;
-  command._errorTemplates   = this._errorTemplates;
-  command._messageFormatter = this._messageFormatter;
-
   // Add to subcommands
   return this._subcommands[name] = command;
 };
@@ -114,18 +112,18 @@ Climatic.prototype.name = function() {
 };
 
 Climatic.prototype.helpMessage = function() {
-  return this._messageFormatter.help(this);
+  return Climatic._messageFormatter.help(this);
 };
 
 Climatic.prototype.errorMessage = function(errors) {
-  return this._messageFormatter.error(this, errors);
+  return Climatic._messageFormatter.error(this, errors);
 };
 
 Climatic.prototype._renderErrors = function(errors) {
   return errors.map(_.bind(function(error) {
     return {
       type: error[0],
-      error: this._errorTemplates[error[0]][error[1]].apply(this, error.slice(2))
+      error: Climatic._errorTemplates[error[0]][error[1]].apply(this, error.slice(2))
     };
   }, this));
 };
@@ -183,7 +181,7 @@ Climatic.prototype._parseOptions = function(payload) {
 Climatic.prototype.parse = function(payload) {
   // For the root command, extract commands
   if (this._root === this) {
-    payload = this._argvParser(payload);
+    payload = Climatic._argvParser(payload);
     payload = {
       raw: payload,
       commands: this.hasSubcommands() && payload.args[0] ? payload.args[0].split(':') : [],
@@ -225,7 +223,7 @@ Climatic.prototype.run = function(payload) {
   // Check for command errors
   var commandErrors = _.filter(payload.errors, function(error) { return error.type === 'command'; });
   if (commandErrors.length) {
-    return this._output(command.errorMessage(commandErrors));
+    return Climatic._output(command.errorMessage(commandErrors));
   }
 
   // Try to find an option with an action
@@ -242,7 +240,7 @@ Climatic.prototype.run = function(payload) {
   // Otherwise check for option or argument errors
   var otherErrors = _.filter(payload.errors, function(error) { return error.type !== 'comand'; });
   if (otherErrors.length) {
-    return this._output(command.errorMessage(otherErrors));
+    return Climatic._output(command.errorMessage(otherErrors));
   }
 
   // Then run the command action
@@ -250,5 +248,5 @@ Climatic.prototype.run = function(payload) {
     return command._action.call(command, payload.args, payload.options, payload.raw);
   }
 
-  this._output(command.helpMessage());
+  Climatic._output(command.helpMessage());
 };
