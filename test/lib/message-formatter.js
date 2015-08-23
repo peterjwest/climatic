@@ -25,6 +25,15 @@ describe('message-formatter', function() {
     });
   });
 
+  describe('inlineError', function() {
+    it('formats errors', function() {
+      assert.equal(
+        format.strip(messageFormatter.inlineError('Some error')),
+        'Error: Some error'
+      );
+    });
+  });
+
   describe('error', function() {
     var sinon = sandbox();
 

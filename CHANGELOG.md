@@ -2,6 +2,7 @@
 
 - Added tests to check context of called actions
 - Changed message formatter to use its own help method
+- Added inline error for erroring actions
 
 # 0.1.0
 
