@@ -18,7 +18,7 @@ if (process.env.CIRCLE_ARTIFACTS) {
 }
 
 var libFiles = ['index.js', 'lib/**/*.js'];
-var testFiles = ['test/**/*.js'];
+var testFiles = ['test/test_helper.js', 'test/**/*.js'];
 var otherFiles = ['gulpfile.js'];
 
 gulp.task('standards', function() {
