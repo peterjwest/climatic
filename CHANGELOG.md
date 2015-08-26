@@ -1,3 +1,7 @@
+# Unreleased
+
+- Changed the way actions trigger errors
+
 # 0.2.0
 
 - Added action error response/handling

@@ -691,18 +691,21 @@ describe('climatic', function() {
       sinon.stub(process, 'exit');
       sinon.stub(Climatic, '_output');
       sinon.stub(Climatic._messageFormatter, 'inlineError').returns('<error>');
+      sinon.spy(Climatic, '_postAction');
     });
 
-    it('exits the process in error if the action returns an error', function() {
+    it('exits the process in error if the action throws an error', function() {
       var cmd = new Climatic('fruit');
       cmd.action(function() {
-        return 'Some error';
+        throw 'Some error';
       });
+
       assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
       assert(Climatic._output.calledOnce);
       assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
       assert(process.exit.calledOnce);
       assert.deepEqual(process.exit.getCall(0).args, [1]);
+      assert.equal(Climatic._postAction.callCount, 1);
     });
 
     it('exits the process in error if the action calls the callback with an error', function() {
@@ -710,31 +713,52 @@ describe('climatic', function() {
       cmd.action(function(args, options, raw, next) {
         next('Some error');
       });
+
       assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
       assert(Climatic._output.calledOnce);
       assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
       assert(process.exit.calledOnce);
       assert.deepEqual(process.exit.getCall(0).args, [1]);
+      assert.equal(Climatic._postAction.callCount, 1);
     });
 
-    it('exits the process in error if the action returns a promise which yields an error', function() {
+    it('exits the process in error if the action returns a promise which rejects with an error', function() {
       var cmd = new Climatic('fruit');
       cmd.action(function() {
-        return bluebird.resolve('Some error');
+        return bluebird.reject('Some error');
       });
+
       cmd._runAction(cmd._action, [1, 2, 3]).then(function() {
         assert(Climatic._output.calledOnce);
         assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
         assert(process.exit.calledOnce);
         assert.deepEqual(process.exit.getCall(0).args, [1]);
+        assert.equal(Climatic._postAction.callCount, 1);
+      });
+    });
+
+    it('exits the process in error if the action returns a promise which rejects with no error', function() {
+      var cmd = new Climatic('fruit');
+      cmd.action(function() {
+        return bluebird.reject(null);
+      });
+
+      cmd._runAction(cmd._action, [1, 2, 3]).then(function() {
+        assert(Climatic._output.calledOnce);
+        assert.deepEqual(Climatic._output.getCall(0).args, ['<error>']);
+        assert(process.exit.calledOnce);
+        assert.deepEqual(process.exit.getCall(0).args, [1]);
+        assert.equal(Climatic._postAction.callCount, 1);
       });
     });
 
     it('does nothing if the action returns no error', function() {
       var cmd = new Climatic('fruit');
       cmd.action(function() { return null; });
+
       assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
       assert(process.exit.notCalled);
+      assert.equal(Climatic._postAction.callCount, 1);
     });
 
     it('does nothing if the action calls the callback with no error', function() {
@@ -742,17 +766,21 @@ describe('climatic', function() {
       cmd.action(function(args, options, raw, next) {
         next();
       });
+
       assert.strictEqual(cmd._runAction(cmd._action, [1, 2, 3]), undefined);
       assert(process.exit.notCalled);
+      assert.equal(Climatic._postAction.callCount, 1);
     });
 
-    it('does nothing if the action returns a promise which yields no error', function() {
+    it('does nothing if the action returns a promise which resolves', function() {
       var cmd = new Climatic('fruit');
       cmd.action(function() {
-        return bluebird.resolve();
+        return bluebird.resolve('OK');
       });
+
       cmd._runAction(cmd._action, [1, 2, 3]).then(function() {
         assert(process.exit.notCalled);
+        assert.equal(Climatic._postAction.callCount, 1);
       });
     });
   });

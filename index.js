@@ -78,6 +78,7 @@ Climatic.prototype.arguments = function(args) {
 Climatic.prototype.action = function(action) {
   if (arguments.length > 0) {
     this._action = action;
+    return this;
   }
 
   return this._action;
@@ -226,18 +227,32 @@ Climatic.prototype.parse = function(payload) {
 Climatic.prototype._runAction = function(action, args) {
   var postAction = _.bind(Climatic._postAction, this);
 
-  // Apply callback to arguments and run action
-  var result = action.apply(this, args.concat(postAction));
+  // Run action, failing on exception
+  try {
+    // Apply callback to arguments and run action
+    var result = action.apply(this, args.concat(postAction));
+  } catch (error) {
+    return postAction(error);
+  }
 
   // Use promise if one was returned
-  if (result) {
-    if (result.then) {
-      return result.then(postAction);
-    };
-
-    // Use an error if one was returned
-    return postAction(result);
+  if (result && result.then) {
+    return result.then(function() {
+      // If the promise was resolved, call the post action with no error
+      postAction();
+    }, function(error) {
+      // If the promise was rejected, ensure there is a truthy error value
+      postAction(error || true);
+    });
   }
+
+  // If the action callback was included, allow it to call the postAction
+  if (action.length > args.length) {
+    return;
+  }
+
+  // Otherwise assume a synchronous function
+  return postAction();
 };
 
 Climatic.prototype.run = function(payload) {
